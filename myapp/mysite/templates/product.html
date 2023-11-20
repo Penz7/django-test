@@ -1,0 +1,198 @@
+{% extends 'dashboard.html' %}
+{% block content %}
+<div class="container p-8">
+    <a class="waves-effect waves-light btn modal-trigger" href="#addProductModal">
+        <i class="material-icons left">add</i>Add Product
+    </a>
+    
+    <div id="addProductModal" class="modal">
+        <div class="modal-content">
+      
+            <form id="addProductForm" method="post" action="{% url 'add_product' %}">
+                {% csrf_token %}
+                <label for="new_name">Name</label>
+                <input id="new_name" name="name" type="text" class="validate">
+    
+                <label for="new_price">Price</label>
+                <input id="new_price" name="price" type="text" class="validate">
+            </form>
+        </div>
+        <div class="modal-footer">
+            <a href="#" onclick="addProduct()" class="waves-effect waves-green btn-flat">Add</a>
+        </div>
+    </div>
+    <table class="responsive-table">
+        <thead>
+            <tr>
+                <th>Stt</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for p in products %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ p.name }}</td>
+                <td>{{ p.price }}</td>
+                <td>
+                    <a class="waves-effect waves-light btn modal-trigger" href="#modal{{ forloop.counter }}"><i
+                            class="material-icons">create</i></a>
+
+                    <!-- Your modal -->
+                    <div id="modal{{ forloop.counter }}" class="modal">
+                        <form id="updateForm{{ forloop.counter }}" method="post"
+                            action="{% url 'update_product' p.id %}">
+                            {% csrf_token %}
+                            <div class="modal-content">
+                                <label for="id_name">Name</label>
+                                <input id="id_name" name="name" type="text" class="validate" value="{{ p.name }}">
+
+                                <label for="id_price">Price</label>
+                                <input id="id_price" name="price" type="text" class="validate"
+                                    value="{{ p.price }}">
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" onclick="updateProduct('{{forloop.counter}}')"
+                                    class="waves-effect waves-green btn-flat">Update</button>
+                            </div>
+                        </form>
+                    </div>
+
+
+                    <a class="waves-effect waves-light btn red modal-trigger"
+                        href="#deleteModal{{ forloop.counter }}">
+                        <i class="material-icons">delete</i>
+                    </a>
+
+                    <!-- Delete Modal -->
+                    <div id="deleteModal{{ forloop.counter }}" class="modal">
+                        <div class="modal-content">
+                            <h4>Delete Product</h4>
+                            <p>Are you sure you want to delete this product?</p>
+                        </div>
+                        <div class="modal-footer">
+                            <a href="#!" class="modal-close waves-effect waves-green btn-flat">Cancel</a>
+                            <a href="#" onclick="deleteProduct('{{forloop.counter}}')"
+                                class="waves-effect waves-red btn-flat">Delete</a>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    $(document).ready(function () {
+        $('.modal').modal();
+    });
+
+    function updateProduct(productId) {
+        var form = document.getElementById('updateForm' + productId);
+        var formData = new FormData(form);
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.getElementsByName('csrfmiddlewaretoken')[0].value,
+            },
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Update Successful',
+                        showConfirmButton: true,
+                    })
+                        .then((result) => {
+                            if (result.isConfirmed || result.isDismissed) {
+                                location.reload();
+                            }
+                        });
+                } else {
+                    // Hiển thị popup thông báo lỗi
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Update Failed',
+                        text: 'Form is not valid. Please check the errors.',
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+
+    function deleteProduct(productId) {
+        fetch('/delete_product/' + productId + '/', {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.getElementsByName('csrfmiddlewaretoken')[0].value,
+            },
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Delete Successful',
+                        showConfirmButton: false,
+                        timer: 1500,
+                    });
+                    location.reload();
+                } else {
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Delete Failed',
+                        text: 'Something went wrong. Please try again.',
+                    });
+                    console.error('Delete failed');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+    function addProduct() {
+    var form = document.getElementById('addProductForm');
+    var formData = new FormData(form);
+    fetch('/add_product/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.getElementsByName('csrfmiddlewaretoken')[0].value,
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Product Added Successfully',
+                showConfirmButton: true,
+                timer: 1500,
+            });
+            location.reload();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Add Product Failed',
+                text: 'Something went wrong. Please try again.',
+            });
+            console.error('Add product failed');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+</script>
+{% endblock %}
